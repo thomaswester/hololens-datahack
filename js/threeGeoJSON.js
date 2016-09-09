@@ -16,6 +16,9 @@ var MAX_LON = -122.9;
 var MIN_LAT = 45.4;
 var MAX_LAT = 45.7;
 
+var scaleX = 6;
+var scaleY = 6;
+
 //note radius is hacked out of this, shape=plane works, only geom type = Polygon works
 function drawThreeGeo(json, radius, shape, options) {
     
@@ -246,9 +249,9 @@ function convertToPlaneCoords(coordinates_array, radius) {
     var lat = coordinates_array[1];
 
     //map this so the mapped area matches 0-1 area
-    var zM = map_range(lat, MIN_LAT, MAX_LAT, -1, 1);
+    var zM = map_range(lat, MIN_LAT, MAX_LAT, scaleX/-2, scaleX/2);
 
-    var yM =map_range(lon, MIN_LON, MAX_LON, -1, 1) * -1;
+    var yM =map_range(lon, MIN_LON, MAX_LON, scaleY/-2, scaleY/2);
         
     z_values.push(zM);
     y_values.push(yM);   
@@ -282,7 +285,7 @@ function drawLine(x_values, y_values, z_values, options) {
     var rectGeom;
 
     if( options.extrude > 0 ){
-        rectGeom = new THREE.ExtrudeGeometry( nShape, { amount:  options.extrude/-1 , bevelEnabled: false  } );
+        rectGeom = new THREE.ExtrudeGeometry( nShape, { amount:  options.extrude , bevelEnabled: false  } );
     }else{
         rectGeom = new THREE.ShapeGeometry( nShape );
     }

@@ -4,24 +4,79 @@
 	<link rel="stylesheet" href="css/style.css" type="text/css"/>
 </head>
 <body>
-	<div id="status">sup dog.</div>
+	<div id="status">
+		<div id="statustext"></div>
+		<div id="graphbuilder">
+			<form action="">
+			<div>
+		        <label for="ip">Node Server:</label>
+		        <input type="text" id="ip" name="ip" value="172.16.0.133"/>
+		    </div>
+		    <div>
+		        <label for="slot">Slot:</label>
+		        <select name="slot" id="slot">
+				  <option value="1">1</option>
+				  <option value="2">2</option>
+				  <option value="3">3</option>
+				  <option value="4">4</option>
+				  <option value="5">5</option>
+				  <option value="6">6</option>
+				  <option value="7">7</option>
+				</select>
+		    </div>
+		    <div>
+		        <label for="slot">Data:</label>
+		          <select name="data" id="data">
+				  <option value="Crime">Crime</option>
+				  <option value="Craigslist">Craigslist</option>
+				  <option value="Race">Race</option>
+				  <option value="Income">Income</option>
+				  <option value="Demolitions">Demolitions</option>
+				  <option value="Education">Education</option>
+				  <option value="ViolentCrime">ViolentCrime</option>
+				  <option value="Zillow">Zillow</option>
+				</select>
+		    </div>
 
-	<script src="js/socket.io.js"></script>
+		    <div>
+		        <label for="location">Location:</label>
+		          <select name="location" id="location">
+					  <option value="206987">Hillsdale</option>
+					  <option value="271082">Downtown</option>
+					  <option value="274898">Old Town-Chinatown</option>
+					  <option value="274797">Northwest</option>
+				</select>
+		    </div>
+	 		
+	 		<div>
+		        <label for="type">type:</label>
+		          <select name="type" id="type">
+					  <option value="bar">bar</option>
+					  <option value="geo">geo</option>
+					  <option value="line">line</option>
+				</select>
+		    </div>
+
+		    <div class="button">
+	       	 	<button type="submit">Build</button>
+	       	</div>
+			</form>
+		</div>
+	</div>
+
 	
+	<script src="js/socket.io.js"></script>	
 	<script src="js/three.min.js"></script>
+	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+
 	<script src="js/OrbitControls.js"></script>
 	<script src="js/GeometryProcessor.js"></script>
 	<script src="js/MeshSenderWebsocket.js"></script>
 	<script src="js/threeGeoJSON.js"></script>
-	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-
-	<script>
-		
-	</script>
-
 	<script src="js/chartutils.js"></script>
 	<script src="js/chart.js"></script>
 
+	<canvas id="chartcanvas"></canvas>
 
 </body>
 </html>

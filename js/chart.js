@@ -29,16 +29,19 @@ function addPointLight(x, y, z, color) {
 
 function initializeCore() {
 
+	var canvas = document.getElementById("chartcanvas");
+	
+
 	core.camera   = new THREE.PerspectiveCamera( );
 	core.scene    = new THREE.Scene();
-	core.renderer = new THREE.WebGLRenderer();
-	core.controls = new THREE.OrbitControls( core.camera );
+	core.renderer = new THREE.WebGLRenderer({ canvas: canvas });
+	core.controls = new THREE.OrbitControls( core.camera, canvas );
 	core.controls.noKeys = true;
 
 	core.camera.position.set(2, 0.75, 3);
 	core.camera.lookAt(core.scene.position);
 
-	document.body.appendChild(core.renderer.domElement);
+	//document.body.appendChild(core.renderer.domElement);
 }
 
 function initializeScene() {
@@ -71,7 +74,7 @@ function render() {
 		for(var itm in status) {
 			statusText.push(itm + ": " + status[itm]);
 		}
-		document.getElementById("status").innerHTML = statusText.join("<br>");
+		document.getElementById("statustext").innerHTML = statusText.join("<br>");
 
 		updateGeometry();
 
@@ -123,6 +126,11 @@ function makeBar( xVal, yVal, z, zMax ){
 		columnmesh.position.set( i*columnwidth + i*chartspacing , colheight/2, columndepth ); //Box geometry is positioned at its’ center, so we need to move it up by half the height
 
 		meshes.push( columnmesh);
+
+		var textGeo = new THREE.TextGeometry( columndepth + ": "+ Math.round(yVal[i]), { font: labelFont, size: 0.04, height: 0.001, curveSegments: 2 } );
+		var textMesh = new THREE.Mesh(textGeo);
+		textMesh.position.set( i*columnwidth + i*chartspacing , colheight, columndepth ); //Box geometry is positioned at its’ center, so we need to move it up by half the height
+		core.scene.add(textMesh);
     }
 	
 }
@@ -159,20 +167,32 @@ function dataLoaded() {
 
 				makeBar( x, y, i, v.length);
 			}
+
+			console.log("Meshes " + meshes.length);
+		    //merge all geometries
+			geometry = mergeMeshes(meshes);
+
+			meshGeom = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial({vertexColors: THREE.VertexColors, "wireframe" : false}) );//	
+			core.scene.add(meshGeom);
+
 			break;
 
 		case "geo":
 		     drawThreeGeo(pdxGeoJson, 1, 'plane', {} );
 
+			console.log("Meshes " + meshes.length);
+		    //merge all geometries
+			geometry = mergeMeshes(meshes);
+
+		    geometry.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI/-2 ) );
+
+			meshGeom = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial({vertexColors: THREE.VertexColors, "wireframe" : false}) );//	
+			core.scene.add(meshGeom);
+			
+
 		break;
 	}
 
-	console.log("Meshes " + meshes.length);
-    //merge all geometries
-	geometry = mergeMeshes(meshes);
-
-	meshGeom = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial({vertexColors: THREE.VertexColors, "wireframe" : false}) );//	
-	core.scene.add(meshGeom);
 }
 
 function loadData( url){
@@ -198,13 +218,24 @@ function initialize() {
 	var loader = new THREE.FontLoader();
 	loader.load( 'fonts/helvetiker_regular.typeface.json', function ( font ) {
 			console.log("Font Loaded");
+			labelFont = font;
 
 	} );
 
-	streamer = new MeshSenderWebsocket("http://localhost:8080/", "Thomas", "Chart via Websocket", 0);
+	graphtype = "geo";
+	streamer = new MeshSenderWebsocket("http://localhost:8080/", "Portland", "Northwest in Portland", 0);
 
 	initializeCore();
 	initializeScene();
+
+	
+ 	var tmpJson = $.getJSON("data/neighborhoods.json", function (data) { 
+ 		console.log("geojson loaded"); 
+		pdxGeoJson = data;
+		//loadData( "data/nw.json");
+ 		}
+ 	);
+
 	
 	resizeViewport(window.innerWidth, window.innerHeight);
 
@@ -212,13 +243,12 @@ function initialize() {
 		resizeViewport(window.innerWidth, window.innerHeight);
 	});
 
- 	var tmpJson = $.getJSON("data/neighborhoods.json", function (data) { console.log("geojson loaded"); pdxGeoJson = data; });
 
-	render();
-	
-	graphtype = "geo";
-	loadData( "data/nw.json");
+	render();	
 }
 
+function buildgraph(){
+	console.log("buildgraph");
+}
 
 window.addEventListener('load', initialize);
