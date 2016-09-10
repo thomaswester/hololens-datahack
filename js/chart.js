@@ -17,8 +17,18 @@ var core = {
 };
 
 
+var state = {
+	"ip" : "172.16.0.133",
+	"slot" : "1",
+	"data" : "",
+	"allyears": false,
+	"location": [],
+	"location_loaded_index": 0,
+	"type": "",
+	"location_data": []
+}
+
 var pdxGeoJson;
-var dataJson;
 
 function addPointLight(x, y, z, color) {
 	var light = new THREE.PointLight({"color":color});
@@ -126,11 +136,11 @@ function makeBar( xVal, yVal, z, zMax ){
 		columnmesh.position.set( i*columnwidth + i*chartspacing , colheight/2, columndepth ); //Box geometry is positioned at its’ center, so we need to move it up by half the height
 
 		meshes.push( columnmesh);
-
+/*
 		var textGeo = new THREE.TextGeometry( columndepth + ": "+ Math.round(yVal[i]), { font: labelFont, size: 0.04, height: 0.001, curveSegments: 2 } );
 		var textMesh = new THREE.Mesh(textGeo);
 		textMesh.position.set( i*columnwidth + i*chartspacing , colheight, columndepth ); //Box geometry is positioned at its’ center, so we need to move it up by half the height
-		core.scene.add(textMesh);
+		core.scene.add(textMesh); */
     }
 	
 }
@@ -144,28 +154,75 @@ function makeLegend( xVal ){
 
 function dataLoaded() {
 
-	console.log("Process Loaded, graphtype: ", graphtype);
+	console.log("Process Loaded Data, graphtype: ", graphtype);
+
+
+	var dataCategory = state.data;
+	var subCategory = "";
+
+	var parseSubStr = dataCategory.indexOf("-");
+	if( parseSubStr > 0 ){
+
+		subCategory = dataCategory.substr( parseSubStr+1, dataCategory.length );
+		dataCategory  = dataCategory.substr( 0, parseSubStr );
+	}
 
 	switch( graphtype){
 
 		case "bar":
-			//education
-			var education = dataJson["Education"];
 
-			var v = education["Values"];
-			for( var i=0; i < v.length; i++ ){
-				var x = [];
-				var y = [];
-				var arr = v[i];
-				for( xVal in arr ){
-					if( xVal != "total"){
-						x.push( xVal );
-						y.push( arr[xVal] );
+			if( state.location.length > 1){
+				
+				for( var i=0; i < state.location_data.length; i++){
+					var nId = state.location_data[i].id;
+					var nData = state.location_data[i].data;
+					var topic = nData[dataCategory];
+					if( topic != null ){
+						
+						var values = topic.Values;
+
+						if( values != null){
+							var x = [];
+							var y = [];
+							var arr = values[ values.length -1 ];
+
+							for( xVal in arr ){
+								if( xVal != "total"){
+									x.push( xVal );
+									y.push( arr[xVal] );
+								}
+							}
+
+							makeBar( x, y, i,  state.location_data.length);
+
+						}
 					}
 				}
+			}else{
+				var nId = state.location_data[0].id;
+				var nData = state.location_data[0].data;
+				var topic = nData[dataCategory];
+				if( topic != null ){
+					
+					var values = topic.Values;
+					if( values != null){
+						
+						for( var i=0; i < values.length; i++ ){
+							var x = [];
+							var y = [];
+							var arr = values[ i ];
 
+							for( xVal in arr ){
+								if( xVal != "total"){
+									x.push( xVal );
+									y.push( arr[xVal] );
+								}
+							}
 
-				makeBar( x, y, i, v.length);
+							makeBar( x, y, i, values.length);
+						}
+					}
+				}
 			}
 
 			console.log("Meshes " + meshes.length);
@@ -178,7 +235,17 @@ function dataLoaded() {
 			break;
 
 		case "geo":
-		     drawThreeGeo(pdxGeoJson, 1, 'plane', {} );
+
+			var v = [];
+			for( var i=0; i < state.location_data.length; i++){
+				var nId = state.location_data[i].id;
+				var nData = state.location_data[i].data;
+
+				v.push( { id: nId, val: nData[dataCategory][subCategory].rank });
+			}
+
+			console.log("drawThreeGeo");
+		    drawThreeGeo(pdxGeoJson, 1, 'plane', { values: v } );
 
 			console.log("Meshes " + meshes.length);
 		    //merge all geometries
@@ -195,20 +262,32 @@ function dataLoaded() {
 
 }
 
-function loadData( url){
+function loadData(){
+
 	var xmlhttp = new XMLHttpRequest();
-	
 	xmlhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {
-	    	console.log("Data Loaded");
-	        dataJson = JSON.parse(this.responseText);
-	        dataLoaded();
+	    	
+			var id = parseInt( state.location[ state.location_loaded_index ] );
+			console.log("Data Loaded " + id );
+
+			state.location_data.push( { id: id, data:  JSON.parse(this.responseText) } );
+
+			state.location_loaded_index++;
+			if( state.location_loaded_index >= state.location.length ){
+				dataLoaded();
+			}else{
+				var url = "http://plot-pdx.s3-website-us-west-2.amazonaws.com/data/v1/" +  state.location[ state.location_loaded_index ] + ".json"
+				this.open("GET", url, true);
+				this.send();
+			}
 
 	    }else if(this.readyState > 3){
 	    	console.log("Error loading data " + this.readyState + " " + this.status);
 	    }
 	};
 
+	var url = "http://plot-pdx.s3-website-us-west-2.amazonaws.com/data/v1/" +  state.location[ state.location_loaded_index ] + ".json";
 	xmlhttp.open("GET", url, true);
 	xmlhttp.send();
 }
@@ -222,21 +301,9 @@ function initialize() {
 
 	} );
 
-	graphtype = "geo";
-	streamer = new MeshSenderWebsocket("http://localhost:8080/", "Portland", "Northwest in Portland", 0);
-
 	initializeCore();
 	initializeScene();
 
-	
- 	var tmpJson = $.getJSON("data/neighborhoods.json", function (data) { 
- 		console.log("geojson loaded"); 
-		pdxGeoJson = data;
-		//loadData( "data/nw.json");
- 		}
- 	);
-
-	
 	resizeViewport(window.innerWidth, window.innerHeight);
 
 	window.addEventListener('resize', function() {
@@ -244,11 +311,35 @@ function initialize() {
 	});
 
 
-	render();	
-}
+	render();
 
-function buildgraph(){
-	console.log("buildgraph");
+	var qd = {};
+	location.search.substr(1).split("&").forEach(function(item) {var s = item.split("="), k = s[0], v = s[1] && decodeURIComponent(s[1]); (qd[k] = qd[k] || []).push(v)})
+
+	state.ip = qd.ip[0];
+	state.slot =  qd.slot[0];
+	state.data = qd.data[0];
+	state.location = qd.location;
+	state.type = qd.type[0];
+	
+	if( state.ip != null && state.type !=null && state.slot != null ){
+	
+		document.getElementById('type').value = state.type;
+		document.getElementById('location').value = state.location;
+		document.getElementById('data').value = state.data;
+		document.getElementById('slot').value = state.slot;
+
+		graphtype = state.type;		
+		streamer = new MeshSenderWebsocket("http://" + state.ip + ":8080/",  state.data.toString(), state.slot.toString(), state.slot);
+
+	 	var tmpJson = $.getJSON("data/neighborhoods.json", function (data) { 
+		 		console.log("geojson loaded"); 
+				pdxGeoJson = data;
+
+				loadData();
+	 		}
+	 	);
+	}
 }
 
 window.addEventListener('load', initialize);

@@ -19,6 +19,9 @@ var MAX_LAT = 45.7;
 var scaleX = 6;
 var scaleY = 6;
 
+var MIN_EXTRUDE = 0;
+var MAX_EXTRUDE = 90;
+
 //note radius is hacked out of this, shape=plane works, only geom type = Polygon works
 function drawThreeGeo(json, radius, shape, options) {
     
@@ -35,6 +38,16 @@ function drawThreeGeo(json, radius, shape, options) {
         //naively assuming this is "type=feature"
         console.log( json.features[ geom_num ].properties.NAME );
 
+        var rId = json.features[ geom_num ].properties.REGIONID
+        var extrudeAmount = 0;
+
+        for(var i=0; i< options.values.length; i++){
+            if( options.values[i].id == rId){
+                // need to map this
+                extrudeAmount =  1 - map_range(options.values[i].val, MIN_EXTRUDE, MAX_EXTRUDE, 0, 1); 
+            }
+        }
+        
         if (json_geom[geom_num].type == 'Polygon') {                        
             for (var segment_num = 0; segment_num < json_geom[geom_num].coordinates.length; segment_num++) {
                 coordinate_array = createCoordinateArray(json_geom[geom_num].coordinates[segment_num]);           
@@ -43,9 +56,9 @@ function drawThreeGeo(json, radius, shape, options) {
                     convertCoordinates(coordinate_array[point_num], radius); 
                 }
 
-                options = { color: DISTINCT_COLORS[geom_num], extrude: geom_num == 0 ? 1 : 0 };
+                var lineoptions = { color: DISTINCT_COLORS[geom_num], extrude: extrudeAmount };
 
-                drawLine(y_values, z_values, x_values, options);
+                drawLine(y_values, z_values, x_values, lineoptions);
             }                        
         } else if (json_geom[geom_num].type == 'MultiPolygon') {
             for (var polygon_num = 0; polygon_num < json_geom[geom_num].coordinates.length; polygon_num++) {
@@ -56,7 +69,7 @@ function drawThreeGeo(json, radius, shape, options) {
                         convertCoordinates(coordinate_array[point_num], radius); 
                     }
                     
-                    options = { color: DISTINCT_COLORS[geom_num], extrude: 0 };
+                    var lineoptions = { color: DISTINCT_COLORS[geom_num], extrude: extrudeAmount };
 
                     drawLine(y_values, z_values, x_values, options);
                 }
